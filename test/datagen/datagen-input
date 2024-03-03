@@ -1,0 +1,7 @@
+streams:
+pos, vel, accel, batt1_volt, batt1_temp
+
+systems:
+sPosNormal, sVelNormal, sAccelToSpeed, 
+
+t=0 streams=accel, val=2, sys=sAccelToSpeed
