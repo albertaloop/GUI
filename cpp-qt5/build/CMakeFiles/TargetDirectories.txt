@@ -1,4 +1,0 @@
-/home/ian/ABLOOP/GUI/cpp-qt5/build/CMakeFiles/abloop_gui.dir
-/home/ian/ABLOOP/GUI/cpp-qt5/build/CMakeFiles/edit_cache.dir
-/home/ian/ABLOOP/GUI/cpp-qt5/build/CMakeFiles/rebuild_cache.dir
-/home/ian/ABLOOP/GUI/cpp-qt5/build/CMakeFiles/abloop_gui_autogen.dir
