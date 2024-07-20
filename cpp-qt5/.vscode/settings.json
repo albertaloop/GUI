@@ -55,6 +55,7 @@
     "cinttypes": "cpp",
     "typeinfo": "cpp",
     "variant": "cpp",
-    "qpainter": "cpp"
+    "qpainter": "cpp",
+    "qlineargradient": "cpp"
   }
 }

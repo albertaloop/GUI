@@ -32,6 +32,7 @@ set(PROJECT_SOURCES
 	SocketComms.cpp
 	MainWindow.cpp
 	PodNetWidget.cpp
+	Commands.cpp
 )
 
 # replaces add_executable so that AUTORCC can add resources file

@@ -1,4 +1,5 @@
 #include "SocketComms.h"
+#include "Commands.h"
 
 #include <sys/socket.h>
 #include <netdb.h>
@@ -7,6 +8,7 @@
 #include <functional>
 #include <cstring>
 #include <thread>
+#include <fcntl.h>
 
 #include <iostream>
 #include <cstdio>  // for perror
@@ -17,9 +19,30 @@ static int sock_fd;
 struct addrinfo *pod_address;
 struct addrinfo hints;
 
-SocketComms::SocketComms(CircularBuffer * buffer)
+static void set_nonblocking(int fd)
 {
-  this->buffer = buffer;
+  int flags = fcntl(fd, F_GETFL, 0);
+  if (flags < 0)
+  {
+      perror("Could not get socket flags with F_GETFD");
+      exit(1);
+  }
+
+  flags |= O_NONBLOCK;
+  int rv = fcntl(fd, F_SETFL, flags);
+  if (rv < 0)
+  {
+      perror("Could not set socket flags with F_SETFD");
+      exit(1);
+  }
+
+  fcntl(fd, O_NONBLOCK);
+}
+
+SocketComms::SocketComms(CircularBuffer * sendBuffer, CircularBuffer * responseBuffer)
+{
+  this->responseBuffer = responseBuffer;
+  this->sendBuffer = sendBuffer;
   for (int i = 0; i < NUM_POSSIBLE_CMDS; ++i)
   {
     validCmds[i] = false;
@@ -66,6 +89,7 @@ void SocketComms::setupSockets()
     exit(1);
   }
 
+
   freeaddrinfo(pod_address);
   std::cout << "connecting to pod" << std::endl;
 
@@ -77,6 +101,8 @@ void SocketComms::setupSockets()
     perror("Could not connect to pod.");
     exit(1);
   }
+  set_nonblocking(sock_fd);
+
   std::cout << "sockets set up" << std::endl;
 
 }
@@ -84,7 +110,7 @@ void SocketComms::setupSockets()
 bool SocketComms::getNextCmd(uint8_t * cmd)
 {
   int val;
-  bool rv = buffer->pop(&val);
+  bool rv = sendBuffer->pop(&val);
   if (rv && validCmds[(uint8_t)val])
   {
     *cmd = (uint8_t)val;
@@ -98,30 +124,66 @@ void SocketComms::threadFunc()
   setupSockets();
   struct timespec loop_delay;
   loop_delay.tv_sec = 0;
-  loop_delay.tv_nsec = 20000000;
-  char recv_buf[2048];
+  loop_delay.tv_nsec = 1000000;
+  //char recv_buf[2048];
+  uint8_t recv_buf;
+  uint8_t cmd_msg;
+  int nbytes;
+  int count = 0;
   while(1)
   {
-    uint8_t cmd_msg;
+    count++;
+    if (count >= 40)
+    {
+      count = 0;
+      printf("sending watchdog\n");
+      int watchDog = WATCHDOG;
+      nbytes = send(sock_fd, &watchDog, sizeof(watchDog), 0);
+      if (nbytes < 0) {
+          if (errno == EAGAIN || errno == EWOULDBLOCK) {
+              //printf("Send would block, try again later\n");
+          } else {
+            perror("Send failed");
+            close(sock_fd);
+          }
+      } else {
+          printf("Sent %zd bytes\n", nbytes);
+      }
+    }
+    
     if (getNextCmd(&cmd_msg))
     {
       printf("sending valid cm\n");
-      if (send(sock_fd, &cmd_msg, sizeof(cmd_msg), 0) < 0)
-      {
-        perror("Send failed");
-        close(sock_fd);
-        exit(1);
+      nbytes = send(sock_fd, &cmd_msg, sizeof(cmd_msg), 0);
+      if (nbytes < 0) {
+          if (errno == EAGAIN || errno == EWOULDBLOCK) {
+              //printf("Send would block, try again later\n");
+          } else {
+            perror("Send failed");
+            close(sock_fd);
+          }
+      } else {
+          printf("Sent %zd bytes\n", nbytes);
       }
-      memset(recv_buf, 0, 2048);
-      recv_buf[2047] = '\0';
-      if (recv(sock_fd, recv_buf, 2048, 0) < 0)
-      {
-        perror("Receive failed");
-      }
-      printf("Received reply from pod:\n %s\n", recv_buf);
-      nanosleep(&loop_delay, NULL);
-
     }
+
+    // memset(recv_buf, 0, 2048);
+    // recv_buf[2047] = '\0';
+    nbytes = recv(sock_fd, &recv_buf, sizeof(cmd_msg), 0);
+    if (nbytes < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            //printf("Receive would block, try again later\n");
+        } else {
+            perror("Recv");
+        }
+    } else if (nbytes == 0) {
+        printf("Connection closed by the server\n");
+        responseBuffer->push(recv_buf);
+    } else {
+        //printf("Received: %x\n", recv_buf);
+    }
+    nanosleep(&loop_delay, NULL);
+
 
 
   }
