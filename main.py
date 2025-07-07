@@ -1,9 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QDialog, QHBoxLayout
 from PyQt5.QtCore import pyqtProperty, QCoreApplication, QObject, QUrl
-from PyQt5.QtQuick import QQuickView
-from PyQt5.QtQml import qmlRegisterType, QQmlComponent, QQmlEngine
-from PyQt5.QtQuickWidgets import QQuickWidget
 import sys
 from AlbertaLoop_UI import Ui_MainWindow
 # import telemetry_module
@@ -33,13 +30,10 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 class MWindowWrapper(Ui_MainWindow):
 
-    def __init__(self, window, ip, port, telemetry_model, udp_module):
+    def __init__(self, window):
         self.setupUi(window)
-        self.ip = ip
-        self.port = port
 
         self.command = None
-        self.udp_module = udp_module
         self.current_state = "fault"
         self.command_requested = ["none"]
         self.healthchk_requested = ["none"]
@@ -49,11 +43,11 @@ class MWindowWrapper(Ui_MainWindow):
         # -----------------------------------------------------------------
         # Add functionality below!
         # User Added QML Widget for Speed Gauge
-        self.spedometerWidget = QQuickWidget()
-        self.spedometerWidget.setClearColor(QtCore.Qt.transparent)
-        self.spedometerWidget.setResizeMode(QQuickWidget.SizeRootObjectToView)
-        self.spedometerWidget.setSource(QUrl("assets/Guage.qml"))
-        self.speedGaugeLayout.addWidget(self.spedometerWidget)
+        # self.spedometerWidget = QQuickWidget()
+        # self.spedometerWidget.setClearColor(QtCore.Qt.transparent)
+        # self.spedometerWidget.setResizeMode(QQuickWidget.SizeRootObjectToView)
+        # self.spedometerWidget.setSource(QUrl("assets/Guage.qml"))
+        # self.speedGaugeLayout.addWidget(self.spedometerWidget)
 
         # Connect clicked functions
         self.launchBtn.clicked.connect(self.launchBtn_clicked)
@@ -66,7 +60,6 @@ class MWindowWrapper(Ui_MainWindow):
         pixmap = QtGui.QPixmap("img/Albertaloop_logo.png")
         self.albertaloopLogo.setPixmap(pixmap)
 
-        self.telemetryTable1.setModel(telemetry_model)
 
     # Clicked function definitions
     def launchBtn_clicked(self):
@@ -151,40 +144,18 @@ class MWindowWrapper(Ui_MainWindow):
     
         
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Albertaloop GUI launch")
-    parser.add_argument(
-        "--server_ip", default="127.0.0.1", help="The ip to send the packets to"
-    )
-    parser.add_argument(
-        "--server_port", type=int, default=4000, help="The UDP port to get updates from the pod"
-    )
-    parser.add_argument(
-        "--client_port", type=int, default=3000, help="The UDP port to send packets to"
-    )
-
-    args = parser.parse_args()
     app = QApplication(sys.argv)
 
     # Model Classes
     TelemetryModel = TelemetryModel()
-    HealthCheckModel = HealthCheckModel()
-    TelemetryReceiver = TelemetryReceiver()
-    CmdTransmitter = CmdTransmitter()
 
     # Controller Classes
-    TelemetryReceiver.setDataModel(TelemetryModel)
     # HealthCheckReq = HealthCheckReq(HealthCheckModel)
-
-    UDPModule = UDPModule(args.server_ip, args.server_port, args.client_port,
-                          TelemetryReceiver, CmdTransmitter)
 
     # View Classes
     MainWindow = QMainWindow()
-    mWindowWrapper = MWindowWrapper(MainWindow, args.server_ip, args.server_port,TelemetryModel,
-        UDPModule)
+    mWindowWrapper = MWindowWrapper(MainWindow)
     
-
-    TelemetryReceiver.start()
     
     MainWindow.show()
     sys.exit(app.exec_())
