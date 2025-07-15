@@ -147,12 +147,11 @@ class MWindowWrapper(Ui_MainWindow):
 
     #updates label colors if state is not equal to current_state
     def updateCurrentState(self, state):
-        current_state = "fault"
-        if state== current_state:
+        if state == self.current_state:
             True
-        elif state!= current_state:
-            current_state=state
-            if state== 'fault':
+        elif state != self.current_state:
+            self.current_state = state
+            if state == ['fault']:
                 self.label_12.setStyleSheet("background-color: red")
                 self.label_11.setStyleSheet("background-color: gray")
                 self.label_10.setStyleSheet("background-color: gray")
@@ -160,7 +159,7 @@ class MWindowWrapper(Ui_MainWindow):
                 self.label_8.setStyleSheet("background-color: gray")
                 self.label_7.setStyleSheet("background-color: gray")
                 self.label_6.setStyleSheet("background-color: gray")
-            if state== 'safe':
+            if state == ['safe']:
                 self.label_12.setStyleSheet("background-color: gray")
                 self.label_11.setStyleSheet("background-color: #89CFF0")
                 self.label_10.setStyleSheet("background-color: gray")
@@ -168,7 +167,7 @@ class MWindowWrapper(Ui_MainWindow):
                 self.label_8.setStyleSheet("background-color: gray")
                 self.label_7.setStyleSheet("background-color: gray")
                 self.label_6.setStyleSheet("background-color: gray")
-            if state== 'ready':
+            if state == ['ready']:
                 self.label_12.setStyleSheet("background-color: gray")
                 self.label_11.setStyleSheet("background-color: gray")
                 self.label_10.setStyleSheet("background-color: green")
@@ -176,7 +175,7 @@ class MWindowWrapper(Ui_MainWindow):
                 self.label_8.setStyleSheet("background-color: gray")
                 self.label_7.setStyleSheet("background-color: gray")
                 self.label_6.setStyleSheet("background-color: gray")
-            if state== 'launch':
+            if state == ['launch']:
                 self.label_12.setStyleSheet("background-color: #89CFF0")
                 self.label_11.setStyleSheet("background-color: gray")
                 self.label_10.setStyleSheet("background-color: gray")
@@ -184,7 +183,7 @@ class MWindowWrapper(Ui_MainWindow):
                 self.label_8.setStyleSheet("background-color: gray")
                 self.label_7.setStyleSheet("background-color: gray")
                 self.label_6.setStyleSheet("background-color: gray")
-            if state== 'coast':
+            if state == ['coast']:
                 self.label_12.setStyleSheet("background-color: gray")
                 self.label_11.setStyleSheet("background-color: gray")
                 self.label_10.setStyleSheet("background-color: gray")
@@ -192,7 +191,7 @@ class MWindowWrapper(Ui_MainWindow):
                 self.label_8.setStyleSheet("background-color: green")
                 self.label_7.setStyleSheet("background-color: gray")
                 self.label_6.setStyleSheet("background-color: gray")
-            if state== 'break':
+            if state == ['break']:
                 self.label_12.setStyleSheet("background-color: gray")
                 self.label_11.setStyleSheet("background-color: gray")
                 self.label_10.setStyleSheet("background-color: gray")
@@ -200,7 +199,7 @@ class MWindowWrapper(Ui_MainWindow):
                 self.label_8.setStyleSheet("background-color: gray")
                 self.label_7.setStyleSheet("background-color: gray")
                 self.label_6.setStyleSheet("background-color: yellow")
-            if state== 'crawl':
+            if state == ['crawl']:
                 self.label_12.setStyleSheet("background-color: gray")
                 self.label_11.setStyleSheet("background-color: gray")
                 self.label_10.setStyleSheet("background-color: gray")
@@ -218,6 +217,13 @@ if __name__ == "__main__":
     BOARD.setup()
     lora = CustomLora()
     lora.set_freq(915)
+    lora.set_pa_config(pa_select=1, max_power=21, output_power=15)
+    lora.set_bw(BW.BW125)
+    lora.set_coding_rate(CODING_RATE.CR4_8)
+    lora.set_spreading_factor(12)
+    lora.set_rx_crc(True)
+    lora.set_low_data_rate_optim(True)
+
 
     assert(lora.get_agc_auto_on() == 1)
 
@@ -225,6 +231,10 @@ if __name__ == "__main__":
         print("START")
         MainWindow = QMainWindow()
         mWindowWrapper = MWindowWrapper(MainWindow, lora)
+
+        # Connect the LoRa signal to the GUI update function
+        lora.state_updated.connect(mWindowWrapper.updateCurrentState)
+        
         MainWindow.show()
         sys.exit(app.exec_())
     except KeyboardInterrupt:

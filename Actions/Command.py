@@ -10,16 +10,15 @@ class Command:
         # while True:
         self.receiver.write_payload(self.message)
         self.receiver.set_mode(MODE.TX)
-        # sleep(2)
+        sleep(0.5)
         self.receiver.reset_ptr_rx()
         self.receiver.set_mode(MODE.RXCONT)
-            # status = self.receiver.cmdTransmit.recvAck(10, self.ack_msg)
-            # if (status):
-            #     break
-        # print("Message transfer complete")
         with cmd_lock:
             command_requested[0] = "none"
         print("Execution complete")
+        
+        # Mock calling the received func
+        self.receiver.on_rx_done()
 
 class Crawl(Command):
     def __init__(self, receiver):
@@ -29,7 +28,7 @@ class Crawl(Command):
 class EStop(Command):
     def __init__(self, receiver):
         self.receiver = receiver
-        self.message = [0x201]
+        self.message = [0x20]
 
 # Not using for K-Days
 class Launch(Command):

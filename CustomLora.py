@@ -1,13 +1,22 @@
 from time import sleep
 from SX127x.LoRa import *
 from SX127x.board_config import BOARD
+from PyQt5.QtCore import QObject, pyqtSignal
 
 def get_state(msg):
-    return "fault"
+    print("Got payload:", msg)
+    return ["fault"]
 
-class CustomLora(LoRa):
+class CustomLora(LoRa, QObject):
+    state_updated = pyqtSignal(list)  # the new state will be emitted here
+
     def __init__(self, verbose=False):
-        super(CustomLora, self).__init__(verbose)
+        LoRa.__init__(self, verbose)
+        QObject.__init__(self) 
+        
+        # Mock function
+        self.read_payload = lambda nocheck=True: [0x301]
+        
         self.set_mode(MODE.SLEEP)
         self.set_dio_mapping([0] * 6)
 
@@ -17,10 +26,9 @@ class CustomLora(LoRa):
         self.clear_irq_flags(RxDone=1)
         payload = self.read_payload(nocheck=True)
 
-        # set state depending on payload
-        get_state(payload)
-        print(payload)
-        # self.set_mode(MODE.SLEEP)
+        # Parse state from payload then emit signal to window
+        new_state = get_state(payload)
+        self.state_updated.emit(new_state)
         BOARD.led_off()
 
     def on_tx_done(self):
